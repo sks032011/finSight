@@ -70,14 +70,13 @@ const userSchema = new mongoose.Schema({
 //   }
 // });
 
-// hash password before saving... MONGOOSE 8+)
+// hash password before saving... )
 userSchema.pre("save", async function() {
-  // Only hash if password is modified
+  // Only hash if password is modified...not name or email
   if (!this.isModified("passwordHash")) {
     return;
   }
 
-  // no need for next in new Mongoose async hooks
   const salt = await bcrypt.genSalt(10);
   this.passwordHash = await bcrypt.hash(this.passwordHash, salt);
   this.updatedAt = Date.now();
@@ -88,15 +87,14 @@ userSchema.methods.comparePassword = async function(passwordAttempt) {
   return await bcrypt.compare(passwordAttempt, this.passwordHash);
 };
 
-// method to get safe user data (without password)
+// method to get safe user data (without password) whn user doc converted to jsonf
 userSchema.methods.toJSON = function() {
   const user = this.toObject();
   delete user.passwordHash;
   delete user.refreshTokens;
   return user;
-};
+};//res.json(user)
 
-// Index for fast lookups
-userSchema.index({ email: 1 });
+
 
 module.exports = mongoose.model("User", userSchema);

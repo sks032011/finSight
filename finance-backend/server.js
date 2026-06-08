@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const cron = require("node-cron");
+const cron = require("node-cron");//scheduled jobs every 1st day of month
 const { Groq } = require("groq-sdk");
 
 const app = express();
@@ -53,13 +53,19 @@ cron.schedule("0 0 1 * *", async () => {
         const currentMonth = new Date().toISOString().slice(0, 7);
 
         // 1ROLL OVER BUDGETS
+         const prevMonth = new Date();
+          prevMonth.setMonth(prevMonth.getMonth() - 1);
+
+        const prevMonthStr =
+        prevMonth.toISOString().slice(0, 7);
+
         const lastMonthBudgets = await Budget.find({
           userId: user._id,
-          month: { $lt: currentMonth }
+          month: prevMonthStr//copy the last month budget to this month automatically so that user doesnt have to manuaaly do it //say may copied to june
         });
 
         for (const budget of lastMonthBudgets) {
-          const exists = await Budget.findOne({
+          const exists = await Budget.findOne({//does june budget already exist
             userId: user._id,
             category: budget.category,
             month: currentMonth
@@ -86,24 +92,24 @@ cron.schedule("0 0 1 * *", async () => {
         // 2GET PREVIOUS MONTH DATA
         const prevMonth = new Date();
         prevMonth.setMonth(prevMonth.getMonth() - 1);
-        const prevMonthStr = prevMonth.toISOString().slice(0, 7);
+        const prevMonthStr = prevMonth.toISOString().slice(0, 7);//ex may 1 2026 to 2026-05 toISOString() gives "2026-05-01T00:00:00.000Z"
         const [prevYear, prevMonthNum] = prevMonthStr.split("-");
-        const prevStart = new Date(prevYear, prevMonthNum - 1, 1);
+        const prevStart = new Date(prevYear, prevMonthNum - 1, 1);//months are 0 indexed in js
         const prevEnd = new Date(prevYear, prevMonthNum, 1);
-
+//May 1 <= expense date < June 1
         const summaryData = await Expense.aggregate([
           {
             $match: {
-              userId: new mongoose.Types.ObjectId(user._id),
-              date: { $gte: prevStart, $lt: prevEnd }
+              userId: new mongoose.Types.ObjectId(user._id),//WHERE USERID=CURRENTUSER
+              date: { $gte: prevStart, $lt: prevEnd }//AND date>='2026-05-01 AND....
             }
-          },
+          },//GROUP BY 
           { $group: { _id: "$category", totalAmount: { $sum: "$amount" }, count: { $sum: 1 } } },
           { $sort: { totalAmount: -1 } }
         ]);
 
         // skip users with no activity last month
-        if (summaryData.length === 0) continue;
+        if (summaryData.length === 0) continue;//jump to next user
 
         const totalSpent = summaryData.reduce((sum, item) => sum + item.totalAmount, 0);
         const transactionCount = summaryData.reduce((sum, item) => sum + item.count, 0);
@@ -116,7 +122,7 @@ cron.schedule("0 0 1 * *", async () => {
           month: prevMonthStr,
           type: "monthly_summary"
         });
-
+//is there alredy an insight for this may for the user?
         if (!existingInsight && transactionCount >= 5) {
           try {
             const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -125,11 +131,11 @@ cron.schedule("0 0 1 * *", async () => {
               .join("\n");
 
             const prompt = `You are a financial advisor. Analyze this spending for ${prevMonthStr} and provide 2-3 insights.
-Total: ₹${Math.round(totalSpent)} | Transactions: ${transactionCount} | Avg: ₹${Math.round(avgTransaction)}
-Breakdown:
-${categoryBreakdown}
+            Total: ₹${Math.round(totalSpent)} | Transactions: ${transactionCount} | Avg: ₹${Math.round(avgTransaction)}
+            Breakdown:
+            ${categoryBreakdown}
 
-Reply ONLY with JSON: {"summaryMessage": "...", "insights": [{"title": "...", "description": "...", "recommendation": "...", "confidence": 0.9}]}`;
+            Reply ONLY with JSON: {"summaryMessage": "...", "insights": [{"title": "...", "description": "...", "recommendation": "...", "confidence": 0.9}]}`;
 
             const message = await groq.chat.completions.create({
               messages: [{ role: "user", content: prompt }],
@@ -138,13 +144,14 @@ Reply ONLY with JSON: {"summaryMessage": "...", "insights": [{"title": "...", "d
               temperature: 0.2
             });
 
+            //cleaning ai response ..convrting to pure json
             let jsonText = message.choices[0].message.content.trim();
             if (jsonText.startsWith("```json")) jsonText = jsonText.replace(/```json\n?/g, "").replace(/```/g, "");
             else if (jsonText.startsWith("```")) jsonText = jsonText.replace(/```\n?/g, "");
 
             let analysis;
             try {
-              analysis = JSON.parse(jsonText);
+              analysis = JSON.parse(jsonText);//to bject
             } catch (parseError) {
               console.error(`LLM JSON error for user ${user._id}`);
               analysis = { summaryMessage: "Your monthly report is ready.", insights: [] };
