@@ -8,7 +8,7 @@ const router = express.Router();
 
 // ========== HELPER FUNCTIONS ==========
 
-function generateTokens(userId) {
+function generateTokens(userId) {//mongo id for d user user._id
   const accessToken = jwt.sign(
     { userId },
     process.env.ACCESS_TOKEN_SECRET,

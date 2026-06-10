@@ -4,8 +4,8 @@ const mongoose = require("mongoose");
 const rateLimit = require("express-rate-limit");
 const auth = require("../middleware/auth");
 const Expense = require("../models/Expense");
-const Budget = require("../models/Budget");
-const User = require("../models/User");
+const Budget = require("../models/Budget");//for budget cross check
+const User = require("../models/User");//to get email for sendimg alert
 const { categorizeExpense, categorizeBatch, getAPIStats } = require("../utils/groqClient");
 const { checkAndCreateAnomaly } = require("../utils/anomalyDetector");
 const { sendBudgetAlert } = require("../utils/emailService");
@@ -13,15 +13,15 @@ const { sendBudgetAlert } = require("../utils/emailService");
 const router = express.Router();
 
 const apiLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 100,
-  keyGenerator: req => req.user.id,
+  windowMs: 60 * 1000,//1 mmin
+  max: 100,//max 100 req p m
+  keyGenerator: req => req.user.id,//id used to limit per logged in user..multi users can share same ip(wifi) user based limiting is fairer
   message: "Too many requests. Please try again later."
 });
 
 const groqLimiter = rateLimit({
   windowMs: 24 * 60 * 60 * 1000,
-  max: 500,
+  max: 500,//500 calls a day
   keyGenerator: req => req.user.id,
   message: "Daily AI quota exceeded. Try again tomorrow."
 });
