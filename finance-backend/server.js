@@ -2,7 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const cron = require("node-cron");//scheduled jobs every 1st day of month
+const cron = require("node-cron"); // scheduled jobs every 1st day of month
 const { Groq } = require("groq-sdk");
 
 const app = express();
@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => {
-    console.error(" MongoDB connection error:", err.message);
+    console.error("MongoDB connection error:", err.message);
     process.exit(1);
   });
 
@@ -34,7 +34,7 @@ app.use("/api/anomalies", require("./routes/anomalies"));
 
 // ========== CRON JOB ==========
 // runs at midnight on 1st of every month
-//  roll over budget ,generate insight , send monthly report email
+// roll over budget, generate insight, send monthly report email
 
 cron.schedule("0 0 1 * *", async () => {
   console.log("Monthly cron job started...");
@@ -52,20 +52,19 @@ cron.schedule("0 0 1 * *", async () => {
       try {
         const currentMonth = new Date().toISOString().slice(0, 7);
 
-        // 1ROLL OVER BUDGETS
-         const prevMonth = new Date();
-          prevMonth.setMonth(prevMonth.getMonth() - 1);
+        // calculate prevMonth/prevMonthStr ONCE, use for both sections
+        const prevMonth = new Date();
+        prevMonth.setMonth(prevMonth.getMonth() - 1);
+        const prevMonthStr = prevMonth.toISOString().slice(0, 7);
 
-        const prevMonthStr =
-        prevMonth.toISOString().slice(0, 7);
-
+        // 1️ ROLL OVER BUDGETS
         const lastMonthBudgets = await Budget.find({
           userId: user._id,
-          month: prevMonthStr//copy the last month budget to this month automatically so that user doesnt have to manuaaly do it //say may copied to june
+          month: prevMonthStr // copy last month's budget to this month automatically
         });
 
         for (const budget of lastMonthBudgets) {
-          const exists = await Budget.findOne({//does june budget already exist
+          const exists = await Budget.findOne({
             userId: user._id,
             category: budget.category,
             month: currentMonth
@@ -89,40 +88,38 @@ cron.schedule("0 0 1 * *", async () => {
           }
         }
 
-        // 2GET PREVIOUS MONTH DATA
-        const prevMonth = new Date();
-        prevMonth.setMonth(prevMonth.getMonth() - 1);
-        const prevMonthStr = prevMonth.toISOString().slice(0, 7);//ex may 1 2026 to 2026-05 toISOString() gives "2026-05-01T00:00:00.000Z"
+        // 2️ GET PREVIOUS MONTH DATA (reuses prevMonth/prevMonthStr from above)
         const [prevYear, prevMonthNum] = prevMonthStr.split("-");
-        const prevStart = new Date(prevYear, prevMonthNum - 1, 1);//months are 0 indexed in js
+        const prevStart = new Date(prevYear, prevMonthNum - 1, 1); // months are 0-indexed in JS
         const prevEnd = new Date(prevYear, prevMonthNum, 1);
-//May 1 <= expense date < June 1
+        // May 1 <= expense date < June 1
+
         const summaryData = await Expense.aggregate([
           {
             $match: {
-              userId: new mongoose.Types.ObjectId(user._id),//WHERE USERID=CURRENTUSER
-              date: { $gte: prevStart, $lt: prevEnd }//AND date>='2026-05-01 AND....
+              userId: new mongoose.Types.ObjectId(user._id),
+              date: { $gte: prevStart, $lt: prevEnd }
             }
-          },//GROUP BY 
+          },
           { $group: { _id: "$category", totalAmount: { $sum: "$amount" }, count: { $sum: 1 } } },
           { $sort: { totalAmount: -1 } }
         ]);
 
         // skip users with no activity last month
-        if (summaryData.length === 0) continue;//jump to next user
+        if (summaryData.length === 0) continue;
 
         const totalSpent = summaryData.reduce((sum, item) => sum + item.totalAmount, 0);
         const transactionCount = summaryData.reduce((sum, item) => sum + item.count, 0);
         const avgTransaction = totalSpent / transactionCount;
         const highestCategory = summaryData[0]._id;
 
-        // 3️ GENERATE MONTHLY INSIGHT (only if 5+ transactions)
+        // 3️GENERATE MONTHLY INSIGHT (only if 5+ transactions)
         const existingInsight = await Insight.findOne({
           userId: user._id,
           month: prevMonthStr,
           type: "monthly_summary"
         });
-//is there alredy an insight for this may for the user?
+
         if (!existingInsight && transactionCount >= 5) {
           try {
             const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -139,19 +136,19 @@ cron.schedule("0 0 1 * *", async () => {
 
             const message = await groq.chat.completions.create({
               messages: [{ role: "user", content: prompt }],
-              model: "llama-3.1-8b-instant",
+              model: "openai/gpt-oss-20b",
               max_tokens: 1000,
               temperature: 0.2
             });
 
-            //cleaning ai response ..convrting to pure json
+            // cleaning ai response, converting to pure json
             let jsonText = message.choices[0].message.content.trim();
             if (jsonText.startsWith("```json")) jsonText = jsonText.replace(/```json\n?/g, "").replace(/```/g, "");
             else if (jsonText.startsWith("```")) jsonText = jsonText.replace(/```\n?/g, "");
 
             let analysis;
             try {
-              analysis = JSON.parse(jsonText);//to bject
+              analysis = JSON.parse(jsonText);
             } catch (parseError) {
               console.error(`LLM JSON error for user ${user._id}`);
               analysis = { summaryMessage: "Your monthly report is ready.", insights: [] };
@@ -174,7 +171,7 @@ cron.schedule("0 0 1 * *", async () => {
           }
         }
 
-        // 4️SEND MONTHLY REPORT EMAIL (fire-and-forget)
+        // 4️ SEND MONTHLY REPORT EMAIL (fire-and-forget)
         if (user?.settings?.emailAlerts !== false) {
           sendMonthlyReport(
             user.email,
@@ -191,9 +188,9 @@ cron.schedule("0 0 1 * *", async () => {
       }
     }
 
-    console.log(" Monthly cron job completed");
+    console.log("Monthly cron job completed");
   } catch (error) {
-    console.error(" Cron job error:", error);
+    console.error("Cron job error:", error);
   }
 });
 
