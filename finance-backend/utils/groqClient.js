@@ -69,7 +69,8 @@ Reply with ONLY this JSON (no markdown, no extra text):
           `
         }
       ],
-model: "llama-3.1-8b-instant",      max_tokens: 50,
+      model: "openai/gpt-oss-20b",
+      max_tokens: 50,
       temperature: 0 // Deterministic
     });
 
@@ -193,17 +194,80 @@ function fallbackCategorization(description) {
 // ========== BATCH CATEGORIZATION (for CSV imports) ==========
 
 async function categorizeBatch(descriptions) {
-  const results = [];
+  const CHUNK_SIZE = 25;
+  const allResults = [];
+  const validCategories = ["Food", "Travel", "Entertainment", "Shopping", "Healthcare", "Work", "Bills", "Utilities", "Other"];
 
-  for (const description of descriptions) {
-    const result = await categorizeExpense(description);
-    results.push(result);
+  for (let i = 0; i < descriptions.length; i += CHUNK_SIZE) {
+    const chunk = descriptions.slice(i, i + CHUNK_SIZE);
     
-    // Add small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const message = await groq.chat.completions.create({
+        messages: [
+          {
+            role: "user",
+            content: `Categorize the following JSON array of expense descriptions. 
+            Available categories: Food, Travel, Entertainment, Shopping, Healthcare, Work, Bills, Utilities, Other.
+            
+            Input: ${JSON.stringify(chunk)}
+            
+            Reply ONLY with a strictly valid JSON array of objects in this exact format, in the same order as the input:
+            [{"category": "Food", "confidence": 0.95}, {"category": "Other", "confidence": 0.80}]`
+          }
+        ],
+        model: "openai/gpt-oss-20b",
+        max_tokens: 1500,
+        temperature: 0
+      });
+
+      let jsonText = message.choices[0].message.content.trim();
+      
+      if (jsonText.startsWith("```json")) {
+        jsonText = jsonText.replace(/```json\n?/g, "").replace(/```/g, "");
+      } else if (jsonText.startsWith("```")) {
+        jsonText = jsonText.replace(/```\n?/g, "");
+      }
+
+      const parsedChunk = JSON.parse(jsonText);
+      
+      // ALIGNMENT GUARDRAIL: Iterate strictly by the original input chunk
+      chunk.forEach((desc, index) => {
+        const llmResult = parsedChunk[index];
+
+        // If the LLM provided a valid result for this exact index, use it
+        if (llmResult && llmResult.category) {
+          const finalCategory = validCategories.includes(llmResult.category) ? llmResult.category : "Other";
+          const finalConfidence = typeof llmResult.confidence === 'number' ? llmResult.confidence : 0.8;
+          
+          allResults.push({ category: finalCategory, confidence: finalConfidence });
+          setCategoryCache(desc, finalCategory, finalConfidence);
+        } else {
+          // The LLM dropped this index or returned garbage. Trigger fallback safely.
+          console.warn(`LLM misalignment at chunk index ${index} for: "${desc}". Using fallback.`);
+          const fallback = fallbackCategorization(desc);
+          allResults.push({
+            category: fallback || "Other",
+            confidence: fallback ? 0.6 : 0
+          });
+        }
+      });
+      
+      apiCallsToday++;
+      
+    } catch (error) {
+      console.error("Batch Groq error:", error.message);
+      // LLM crashed completely or returned totally invalid JSON
+      chunk.forEach(desc => {
+        const fallback = fallbackCategorization(desc);
+        allResults.push({
+          category: fallback || "Other",
+          confidence: fallback ? 0.6 : 0
+        });
+      });
+    }
   }
 
-  return results;
+  return allResults;
 }
 
 // ========== UTILITY FUNCTIONS ==========
