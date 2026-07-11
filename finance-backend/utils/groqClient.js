@@ -9,11 +9,11 @@ const categoryCache = new Map();
 
 // ytrackin API usage for monitoring
 let apiCallsToday = 0;
-let lastResetDate = new Date().toDateString();
+let lastResetDate = new Date().toDateString();//to reset api call countr for today
 
 // ========== CACHE MANAGEMENT ==========
 
-function clearCacheIfNewDay() {
+function resetDailyStats() {
   const today = new Date().toDateString();
   if (today !== lastResetDate) {
     apiCallsToday = 0;
@@ -22,23 +22,23 @@ function clearCacheIfNewDay() {
 }
 
 function getCacheKey(description) {
-  return description.toLowerCase().trim();
+  return description.toLowerCase().trim();//swiggy=SWIGGY=SwigGY
 }
 
 function getCachedCategory(description) {
   const key = getCacheKey(description);
-  return categoryCache.get(key);
+  return categoryCache.get(key);//cache lookup or else return undefined
 }
 
 function setCategoryCache(description, category, confidence) {
   const key = getCacheKey(description);
-  categoryCache.set(key, { category, confidence, timestamp: Date.now() });
+  categoryCache.set(key, { category, confidence});
 }
 
 // ========== MAIN CATEGORIZATION FUNCTION ==========
 
 async function categorizeExpense(description) {
-  clearCacheIfNewDay();
+  resetDailyStats();
 
   // Check cache first
   const cached = getCachedCategory(description);
@@ -84,12 +84,12 @@ Reply with ONLY this JSON (no markdown, no extra text):
       jsonText = responseText.replace(/```\n?/g, "");
     }
     
-    const result = JSON.parse(jsonText.trim());
+    const result = JSON.parse(jsonText.trim());//string to obj..now i can res.category stuff
 
     // Validate category
     const validCategories = ["Food", "Travel", "Entertainment", "Shopping", "Healthcare", "Work", "Bills", "Utilities", "Other"];
     if (!validCategories.includes(result.category)) {
-      result.category = "Other";
+      result.category = "Other";//say it returns groceries so mark it others
     }
 
     // Ensure confidence is valid
@@ -101,7 +101,6 @@ Reply with ONLY this JSON (no markdown, no extra text):
     setCategoryCache(description, result.category, result.confidence);
     apiCallsToday++;
 
-    console.log(`Groq response: "${description}" → ${result.category} (confidence: ${result.confidence})`);
 
     return {
       category: result.category,
@@ -121,7 +120,7 @@ Reply with ONLY this JSON (no markdown, no extra text):
         source: "fallback_rules"
       };
     }
-
+// say randomxyzstore
     // Fallb 2: Return "Other" and ask user to categorize manually
     console.log(` fallback (manual): "${description}" → Other`);
     return {
@@ -230,7 +229,7 @@ async function categorizeBatch(descriptions) {
 
       const parsedChunk = JSON.parse(jsonText);
       
-      // ALIGNMENT GUARDRAIL: Iterate strictly by the original input chunk
+      // ALIGNMENT GUARDRAIL: 
       chunk.forEach((desc, index) => {
         const llmResult = parsedChunk[index];
 
@@ -259,7 +258,7 @@ async function categorizeBatch(descriptions) {
       // LLM crashed completely or returned totally invalid JSON
       chunk.forEach(desc => {
         const fallback = fallbackCategorization(desc);
-        allResults.push({
+        allResults.push({//entire chunk uses manual rule engine
           category: fallback || "Other",
           confidence: fallback ? 0.6 : 0
         });
@@ -270,7 +269,6 @@ async function categorizeBatch(descriptions) {
   return allResults;
 }
 
-// ========== UTILITY FUNCTIONS ==========
 
 function getAPIStats() {
   return {
@@ -282,7 +280,6 @@ function getAPIStats() {
 
 function clearCache() {
   categoryCache.clear();
-  console.log("✅ Cache cleared");
 }
 
 module.exports = {

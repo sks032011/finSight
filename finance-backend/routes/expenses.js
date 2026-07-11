@@ -176,7 +176,7 @@ router.get("/", auth, apiLimiter, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, parseInt(req.query.limit) || 50);
     const skip = (page - 1) * limit;
-
+// createin the query 
     let query = { userId: req.user.id };
     if (req.query.category) query.category = String(req.query.category);
     if (req.query.startDate || req.query.endDate) {
@@ -208,7 +208,7 @@ router.get("/", auth, apiLimiter, async (req, res) => {
       .sort({ date: -1 })
       .skip(skip)
       .limit(limit)
-      .lean();
+      .lean();//return plain js obj not full mong. doc instances
 
     res.json({
       success: true,
@@ -302,7 +302,6 @@ router.put("/:id", auth, apiLimiter, async (req, res) => {
       ];
       if (validCategories.includes(String(category))) {
         expense.category = String(category);
-        expense.isCategorizedByAI = false;
       }
     }
     if (date !== undefined) {
@@ -365,17 +364,12 @@ router.delete("/:id", auth, apiLimiter, async (req, res) => {
 router.post("/import/csv", auth, groqLimiter, async (req, res) => {
   try {
     const { expenses } = req.body;
-    expenses.forEach((e, i) => {
-  console.log(i, e);
-  console.log("amount:", e.amount);
-  console.log("parseFloat:", parseFloat(e.amount));
-  console.log("date:", e.date);
-});
+    
     if (!Array.isArray(expenses) || expenses.length === 0)
       return res
         .status(400)
         .json({ success: false, message: "Invalid CSV data" });
-    if (expenses.length > 100)
+    if (expenses.length > 100)//limits 100 rows/ records only
       return res
         .status(400)
         .json({ success: false, message: "Maximum 100 expenses per import" });
@@ -435,7 +429,7 @@ router.post("/import/csv", auth, groqLimiter, async (req, res) => {
       });
   }
 });
-
+//DASHBOARD ANALYTICS 
 // ========== MONTHLY SUMMARY ==========
 
 router.get("/summary/monthly", auth, async (req, res) => {
@@ -495,14 +489,5 @@ router.get("/summary/monthly", auth, async (req, res) => {
   }
 });
 
-// ========== GROQ API STATS ==========
-
-router.get("/stats/api", auth, async (req, res) => {
-  try {
-    res.json({ success: true, ...getAPIStats() });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-});
 
 module.exports = router;
