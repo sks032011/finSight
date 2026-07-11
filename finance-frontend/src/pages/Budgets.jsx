@@ -55,7 +55,7 @@ export default function Budgets() {
   return (
     <div className="animate-entry" style={{ maxWidth: "1000px", margin: "30px auto", padding: "20px", width: "100%" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", flexWrap: "wrap", gap: "15px" }}>
-        <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "800", color: "var(--text-main)" }}>💳 Budgets</h1>
+        <h1 style={{ margin: 0, fontSize: "28px", fontWeight: "800", color: "var(--text-main)" }}>Budgets</h1>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary" style={{ width: "auto", padding: "10px 20px" }}>
           {showForm ? "✕ Cancel" : "➕ Add Budget"}
         </button>

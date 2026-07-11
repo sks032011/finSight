@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Expense = require("../models/Expense");
 const Anomaly = require("../models/Anomaly");
-const User = require("../models/User");
+const User = require("../models/User"); //for email
 const { sendAnomalyAlert } = require("./emailService");
 const { Groq } = require("groq-sdk");
 
@@ -23,17 +23,17 @@ async function checkAndCreateAnomaly(userId, expense) {
           userId: new mongoose.Types.ObjectId(userId),
           category: expense.category,
           date: { $gte: sixMonthsAgo, $lt: new Date(expense.date) },
-          _id: { $ne: expense._id } // Exclude current expense
-        }
+          _id: { $ne: expense._id }, // exclude current expense like say it was 200 100 300 avg =200 if i include todays 90000 thn doesnt make it a correct calc..
+        },
       },
       {
         $group: {
           _id: null,
           mean: { $avg: "$amount" },
           stdDev: { $stdDevPop: "$amount" },
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     // need at least 3 prior transactions to establish baseline
@@ -42,41 +42,42 @@ async function checkAndCreateAnomaly(userId, expense) {
     const { mean, stdDev, count } = historicalData[0];
 
     // avoid division by zero
-    const safeStdDev = stdDev === 0 ? mean * 0.1 : stdDev;
-
+    const safeStdDev = Math.max(stdDev, 1);
     // zscore calc
     const zScore = (expense.amount - mean) / safeStdDev;
 
-    //  flag if Z > 2 (95th perc)
+    //  flag if Z > 2 
     if (zScore <= 2) return null;
 
     const anomalyScore = Math.min(Math.round((zScore / 4) * 100), 100);
-
+//scale it to 0-100 score
     // AI explanation
     let aiExplanation = null;
     try {
       const prompt = `You are a fraud detection AI. Analyze this unusual expense.
-Transaction: "${expense.description}"
-Amount: ₹${expense.amount}
-Category: ${expense.category}
-Historical average: ₹${Math.round(mean)}
-Z-Score: ${zScore.toFixed(2)}
+      Transaction: "${expense.description}"
+      Amount: ₹${expense.amount}
+      Category: ${expense.category}
+      Historical average: ₹${Math.round(mean)}
+      Z-Score: ${zScore.toFixed(2)}
 
-Is this a legitimate splurge or potential fraud?
+      Is this a legitimate splurge or potential fraud?
 
-Respond ONLY in JSON:
-{"reason": "Brief explanation", "severity": "low|medium|high", "isFraud": true/false, "fraudConfidence": 0.0}`;
+      Respond ONLY in JSON:
+      {"reason": "Brief explanation", "severity": "low|medium|high", "isFraud": true/false, "fraudConfidence": 0.0}`;
 
       const completion = await groq.chat.completions.create({
         messages: [{ role: "user", content: prompt }],
         model: "openai/gpt-oss-20b",
         temperature: 0.1,
-        max_tokens: 200
+        max_tokens: 200,
       });
 
       let jsonText = completion.choices[0].message.content.trim();
-      if (jsonText.startsWith("```json")) jsonText = jsonText.replace(/```json\n?/g, "").replace(/```/g, "");
-      else if (jsonText.startsWith("```")) jsonText = jsonText.replace(/```\n?/g, "");
+      if (jsonText.startsWith("```json"))
+        jsonText = jsonText.replace(/```json\n?/g, "").replace(/```/g, "");
+      else if (jsonText.startsWith("```"))
+        jsonText = jsonText.replace(/```\n?/g, "");
 
       aiExplanation = JSON.parse(jsonText);
     } catch (aiError) {
@@ -85,7 +86,7 @@ Respond ONLY in JSON:
         reason: "Statistically unusually high amount based on past spending.",
         severity: anomalyScore > 75 ? "high" : "medium",
         isFraud: false,
-        fraudConfidence: 0
+        fraudConfidence: 0,
       };
     }
 
@@ -102,7 +103,7 @@ Respond ONLY in JSON:
       zScore: parseFloat(zScore.toFixed(2)),
       anomalyScore,
       aiExplanation,
-      status: "pending"
+      status: "pending",
     });
 
     await anomaly.save();
@@ -110,7 +111,7 @@ Respond ONLY in JSON:
     // FIRE AND FORGET mail alert (non blocking)
     User.findById(userId)
       .select("email name settings")
-      .then(user => {
+      .then((user) => {
         if (user?.settings?.emailAlerts !== false) {
           sendAnomalyAlert(
             user.email,
@@ -118,7 +119,7 @@ Respond ONLY in JSON:
             expense.description,
             expense.amount,
             anomalyScore,
-            expense.category
+            expense.category,
           ).catch(console.error);
         }
       })
@@ -145,5 +146,5 @@ function zScoreToAnomalyScore(zScore) {
 module.exports = {
   checkAndCreateAnomaly,
   calculateZScore,
-  zScoreToAnomalyScore
+  zScoreToAnomalyScore,
 };

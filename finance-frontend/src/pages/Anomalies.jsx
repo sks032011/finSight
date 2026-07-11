@@ -64,9 +64,9 @@ export default function Anomalies() {
 
   return (
     <div className="animate-entry" style={{ maxWidth: "1200px", margin: "30px auto", padding: "20px", width: "100%" }}>
-      <h1 style={{ margin: "0 0 24px", fontSize: "28px", fontWeight: "800", color: "var(--text-main)" }}>🔍 Anomaly Detection</h1>
+      <h1 style={{ margin: "0 0 24px", fontSize: "28px", fontWeight: "800", color: "var(--text-main)" }}> Anomaly Detection</h1>
 
-      {error && <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", padding: "12px", borderRadius: "8px", marginBottom: "20px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>❌ {error}</div>}
+      {error && <div style={{ background: "rgba(239, 68, 68, 0.1)", color: "var(--danger)", padding: "12px", borderRadius: "8px", marginBottom: "20px", border: "1px solid rgba(239, 68, 68, 0.2)" }}> {error}</div>}
 
       {stats && (
         <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "15px", marginBottom: "30px" }}>
@@ -103,7 +103,7 @@ export default function Anomalies() {
         <div style={{ color: "var(--text-secondary)" }}>Loading anomalies...</div>
       ) : anomalies.length === 0 ? (
         <div className="glass-card" style={{ textAlign: "center", padding: "40px", color: "var(--primary)", borderColor: "var(--primary-soft)", background: "var(--primary-soft)" }}>
-          ✅ No anomalies found. Your spending looks normal!
+           No anomalies found. Your spending looks normal!
         </div>
       ) : (
         <div className="responsive-grid" style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "25px" }}>
@@ -168,7 +168,7 @@ export default function Anomalies() {
 
               {selectedAnomaly.aiExplanation && (
                 <div style={{ marginBottom: "30px", background: "rgba(59, 130, 246, 0.05)", borderRadius: "8px", padding: "16px", border: "1px solid rgba(59, 130, 246, 0.2)" }}>
-                  <h3 style={{ margin: "0 0 12px", color: "var(--info)", fontSize: "14px", textTransform: "uppercase" }}>🤖 AI Analysis</h3>
+                  <h3 style={{ margin: "0 0 12px", color: "var(--info)", fontSize: "14px", textTransform: "uppercase" }}> AI Analysis</h3>
                   <p style={{ margin: "0 0 12px", color: "var(--text-main)", lineHeight: "1.5" }}>{selectedAnomaly.aiExplanation.reason}</p>
                   <div style={{ display: "flex", gap: "10px" }}>
                     <span style={{ padding: "4px 10px", backgroundColor: "var(--bg-secondary)", border: `1px solid ${getSeverityColor(selectedAnomaly.aiExplanation.severity)}`, color: getSeverityColor(selectedAnomaly.aiExplanation.severity), borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>

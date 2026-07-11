@@ -72,7 +72,7 @@ export default function Login() {
             <div style={{ marginBottom: "32px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                 <label className="input-label" style={{ marginBottom: 0 }}>Password</label>
-                <span style={{ fontSize: "13px", color: "var(--primary)", cursor: "pointer", fontWeight: "500" }}>Forgot password?</span>
+                
               </div>
               <input type="password" name="password" className="input-field" value={formData.password} onChange={handleChange} placeholder="••••••••" required />
             </div>
