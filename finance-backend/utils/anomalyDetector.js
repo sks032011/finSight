@@ -132,19 +132,19 @@ async function checkAndCreateAnomaly(userId, expense) {
   }
 }
 
-function calculateZScore(value, mean, stdDev) {
-  if (stdDev === 0) return 0;
-  return Math.abs((value - mean) / stdDev);
-}
+// function calculateZScore(value, mean, stdDev) {
+//   if (stdDev === 0) return 0;
+//   return Math.abs((value - mean) / stdDev);
+// }
 
-function zScoreToAnomalyScore(zScore) {
-  if (zScore <= 1) return 0;
-  if (zScore >= 3) return 100;
-  return Math.round(((zScore - 1) / 2) * 100);
-}
+// function zScoreToAnomalyScore(zScore) {
+//   if (zScore <= 1) return 0;
+//   if (zScore >= 3) return 100;
+//   return Math.round(((zScore - 1) / 2) * 100);
+// }
 
 module.exports = {
   checkAndCreateAnomaly,
-  calculateZScore,
-  zScoreToAnomalyScore,
+  // calculateZScore,
+  // zScoreToAnomalyScore,
 };

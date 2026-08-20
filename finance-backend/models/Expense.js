@@ -22,10 +22,7 @@ const expenseSchema = new mongoose.Schema({
     enum: ["Food", "Travel", "Entertainment", "Shopping", "Healthcare", "Work", "Bills", "Utilities", "Other"],
     required: [true, "Category is required"]
   },
-  customCategory: {
-    type: String,
-    trim: true
-  },
+  
   tags: {
     type: [String],
     default: []
@@ -36,15 +33,7 @@ const expenseSchema = new mongoose.Schema({
     default: Date.now,
     index: true
   },
-  isRecurring: {
-    type: Boolean,
-    default: false
-  },
-  recurringFrequency: {
-    type: String,
-    enum: ["daily", "weekly", "monthly", "yearly", null],
-    default: null
-  },
+  
   isCategorizedByAI: {
     type: Boolean,
     default: true
@@ -55,10 +44,7 @@ const expenseSchema = new mongoose.Schema({
     max: 1,
     default: 1
   },
-  originalDescription: {
-    type: String,
-    trim: true
-  },
+  
   notes: {
     type: String,
     trim: true
@@ -68,7 +54,6 @@ const expenseSchema = new mongoose.Schema({
     enum: ["manual", "csv_import", "bank_api"],
     default: "manual"
   },
-  attachments: [String],
   isEdited: {
     type: Boolean,
     default: false
@@ -84,17 +69,11 @@ const expenseSchema = new mongoose.Schema({
 });
 
 // Compound indexes for fast queries
-expenseSchema.index({ userId: 1, date: -1 });
+expenseSchema.index({ userId: 1, date: -1 });//for find({ userId }).sort({ date: -1 })
 expenseSchema.index({ userId: 1, category: 1 });
 expenseSchema.index({ userId: 1, createdAt: -1 });
 
-// // Update timestamp on save
-// expenseSchema.pre("save", function(next) {
-//   this.updatedAt = Date.now();
-//   next();
-// });
 
-// MONGOOSE 8+)
 expenseSchema.pre("save", function() {
   this.updatedAt = Date.now();
 });

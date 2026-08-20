@@ -28,7 +28,7 @@ export default function Login() {
 
   return (
     <div className="auth-container" style={{ display: "flex", minHeight: "100vh", backgroundColor: "var(--bg-main)" }}>
-      {/* Left Side - Branding */}
+      {/* Left sde branding */}
       <div className="auth-banner" style={{ flex: 1, background: "linear-gradient(135deg, var(--bg-main) 0%, var(--bg-secondary) 100%)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "60px", color: "white", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "relative", zIndex: 2, maxWidth: "480px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "40px" }}>
