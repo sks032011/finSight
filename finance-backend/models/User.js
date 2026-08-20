@@ -21,23 +21,10 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
     select: false // Don't return password hash in queries by default
   },
-  currency: {
-    type: String,
-    default: "INR",
-    enum: ["INR", "USD", "EUR", "GBP"]
-  },
-  timezone: {
-    type: String,
-    default: "Asia/Kolkata"
-  },
+  
+  
   settings: {
     emailAlerts: { type: Boolean, default: true },
-    darkMode: { type: Boolean, default: false },
-    notificationFrequency: {
-      type: String,
-      enum: ["daily", "weekly", "monthly"],
-      default: "weekly"
-    }
   },
   refreshTokens: {
     type: [String],

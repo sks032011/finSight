@@ -7,9 +7,8 @@ const anomalySchema = new mongoose.Schema({
     index: true
   },
   expenseId: {
-    type: mongoose.ObjectId,
+    type: mongoose.ObjectId,//stroin too link each anomaly back to the original expense for retrvl and display
     required: true,
-    ref: "Expense"
   },
   category: {
     type: String,

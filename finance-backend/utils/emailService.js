@@ -5,7 +5,7 @@ const transporter = process.env.EMAIL_USER && process.env.EMAIL_PASS
       service: "gmail",
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
     })
-  : null;
+  : null;//not throwin error here not imp enough to stop the system
 
 async function sendEmail(to, subject, html) {
   if (!transporter) return;
@@ -16,7 +16,6 @@ async function sendEmail(to, subject, html) {
       subject,
       html
     });
-    console.log(`mail sent: ${subject} → ${to}`);
   } catch (error) {
     console.error(`mail failed: ${error.message}`);
   }
@@ -34,7 +33,7 @@ async function sendBudgetAlert(userEmail, userName, category, percentage, spent,
         <h2 style="color: #F8FAFC; text-align: center;">${emoji} Budget Alert</h2>
         <p style="color: #94A3B8; text-align: center;">Hi ${userName}, your ${category} budget needs attention.</p>
         <div style="background: #020617; border-radius: 12px; padding: 20px; margin: 24px 0; border: 1px solid #1F2937;">
-          <p style="margin: 0 0 10px; color: #94A3B8;">Spent: <span style="color: #F8FAFC; float: right; font-weight: bold;">₹${spent.toFixed(0)}</span></p>
+      <p style="margin: 0 0 10px; color: #94A3B8;">Spent: <span style="color: #F8FAFC; float: right; font-weight: bold;">₹${spent.toFixed(0)}</span></p>  
           <p style="margin: 0 0 15px; color: #94A3B8;">Limit: <span style="color: #F8FAFC; float: right; font-weight: bold;">₹${limit.toFixed(0)}</span></p>
           <p style="color: ${color}; text-align: center; font-weight: bold; font-size: 18px; margin: 0;">${percentage}% Used</p>
         </div>

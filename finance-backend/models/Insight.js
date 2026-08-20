@@ -10,11 +10,7 @@ const insightSchema = new mongoose.Schema({
     type: String, // "2024-03"
     required: true
   },
-  type: {
-    type: String,
-    enum: ["monthly_summary", "savings_opportunity", "anomaly_alert", "trend_analysis"],
-    default: "monthly_summary"
-  },
+ 
   title: {
     type: String,
     required: true
@@ -41,7 +37,6 @@ const insightSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  acknowledgedAt: Date,
   expireAt: {
     type: Date,
     index: { expireAfterSeconds: 0 } // TTL index - auto delete after 30 days
