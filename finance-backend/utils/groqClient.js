@@ -70,8 +70,11 @@ Reply with ONLY this JSON (no markdown, no extra text):
         }
       ],
       model: "openai/gpt-oss-20b",
-      max_tokens: 50,
-      temperature: 0 // Deterministic
+      // max_tokens: 50,
+      // temperature: 0 // Deterministic
+      max_tokens: 300,       // ✅ enough room for reasoning + final JSON
+  temperature: 0,
+  reasoning_effort: "low"
     });
 
     const responseText = message.choices[0].message.content.trim();
